@@ -14,7 +14,7 @@
 
 
 
-1. 基础运行环境准备
+##### 一. 基础运行环境准备
 
 - 准备一个kali的虚拟机镜像
   网络设置--网络地址转换NAT（方便虚拟机有互联网连接）、仅主机网络（方便本地终端连接虚拟机）
@@ -76,16 +76,16 @@
   >ssh-copy-id -i ~/.ssh/id_rsa.pub kali@IP
   >ssh kali@IP
 
-2. 漏洞攻防环境现状
+##### 二. 漏洞攻防环境现状
 
 
-3. 漏洞攻防环境搭建
+##### 三. 安装docker和拉取镜像
 
 - 虚拟机中：
-  >git clone https://github.com/c4pr1c3/ctf-games
+  >git clone https://github.com/c4pr1c3/ctf-games.git
   >cd ctf-games
   >ls -l
-  >cd fofpapro
+  >cd fofapro
   >ls
 
 ![git_clone](pic/git_clone.png)
@@ -230,13 +230,89 @@
 
     决定恢复备份，重新做人。。
 
+- 重新尝试安装docker
+  
+  完成前面基础部分，虚拟机生成备份。
 
+  >sudo apt update
+
+  >sudo apt install -y docker.io docker-compose jq
+
+  ![docker_install](pic/docker_install.png)
+
+  添加用户(使后续的docker命令操作不需要sudo)
+  
+  >sudo usermod -a -G docker kali
+
+  切换到root用户
+
+  在`/etc/docker/daemon.json`中添加
+  ```
+  {
+      "registry-mirrors":["https://docker.mirrors.ustc.edu.cn/"]
+  }
+  ```
+  
+  ![vim_daemon.json](pic/daemon.json.png)
         
+  重启docker引擎服务
 
+  >systemctl restart docker
 
+  退出root权限`exit`
 
+  ![restart_docker](pic/restart_docker.png)
 
-1. 漏洞攻击
+- 拉取镜像
+  
+  提前拉取vulfocus镜像
+  >docker pull vulfocus/vulfocus:latest
+
+  ![docker_vulfocus](pic/docker_vulfocus.png)
+
+  重新登录一下(虽然已将用户加入到docker组里，但是需要重新登录一下才可以生效)
+
+  >exit
+
+  >ssh@IP
+
+  >id
+
+  ![id_push_docker](pic/id_push_docker.png)
+  
+  再执行`docker pull`
+
+  >docker pull vulfocus/vulfocus:latest
+
+  ![docker pull](pic/docker_pull_vulfocus.png)
+
+##### 快速上手vulfocus
+
+- 进入vulfocus目录，执行start.sh
+  
+  >cd ctf-games/fofapro/vulfocus
+
+  >ls
+
+  >bash start.sh
+
+  ![run_start.sh](pic/run_start.sh.png)
+
+  >docker ps
+
+  ![docker_ps](pic/docker_ps.png)
+  
+  在宿主机直接搜索IP可以看到页面
+  ![vulfocus](pic/vulfocus.png)
+
+  输入账号/密码登录（admin/admin)
+
+  左侧镜像管理-点击一键同步
+  ![vulfocus](pic/vulfocus_mirror.png)
+
+  ![vulfocus_mirrors](pic/vulfocus_mirrors.png)
+
+##### 知法守法
 
 
 
