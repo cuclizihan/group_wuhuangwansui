@@ -314,7 +314,104 @@
 
 ##### 知法守法
 
+##### 漏洞攻击导论
+
+从单个漏洞靶标开始——一切来自于用户输入的数据都是不可信的
+
+```
+1.找到靶标的[访问入口]
+2.收集[威胁暴露面]信息
+3.监测漏洞存在性
+4.验证漏送可利用性
+5.评估漏洞利用效果
+```
+
+##### log4j2
+
+- log4j2  CVE-2021-44228
+
+- 找到靶标访问入口
+  
+  ![start](pic/start.png)
+
+- 漏洞原理详解
+  
+  [从零到一带你深入 log4j2 Jndi RCE CVE-2021-44228漏洞](https://www.anquanke.com/post/id/263325)
+
+  [如何看待log4j2远程代码执行漏洞](https://www.zhihu.com/question/505025655)
+
+  [Log4j2 漏洞详解 (CVE-2021-44228)](https://blog.cloudflare.com/zh-cn/inside-the-log4j2-vulnerability-cve-2021-44228-zh-cn/)
+
+- 检测log4Shell漏洞存在性
+  
+  - 确认受漏洞影响组件的【版本号】
+    
+  - 源代码审计
+
+  ![docker_naem](pic/docker_ps_name.png)
+  
+  进入容器
+  >docker exec -it <容器名> bash
+
+  (可能存在bash不在环境变量等情况，可以通过改为`/bin/bash`解决)
+
+  ![进入容器](pic/docker_bash.png)
+
+  可以看到缺省情况下，目标文件`demo.jar`已经存在
+
+  ![demo.jar](pic/docker_ls.png)
+
+  把`demo.jar`拉到宿主机上，用java的反编译器反编译。
+  
+  查看路径并退出
+  >pwd
+
+  ![pwd](pic/pwd.png)
+
+  >exit
+  
+  将文件从容器内移出
+  >docker cp <容器名>:/demo/demo.jar ./
+  
+  ![demo_kali](pic/demo_kali.png)
+
+  再将文件挪到宿主机上方便读取
+
+  找了一个在线的反编译网站
+  [反编译网站](https://www.decompiler.com/jar/9b05d0c56c0f4bd582987faed8865ab1/demo.jar)
+
+  得到所需
+
+- 验证log4Shell漏洞可利用
+
+  无法打开`dnslog.cn`
+  
+  尝试其他可代替网站，[参考文章](https://blog.csdn.net/qq_53577336/article/details/118615216#:~:text=%E6%8E%A8%E8%8D%90%E4%B8%89%E4%B8%AA%E5%A4%A7%E4%BC%97%E5%8C%96%E7%9A%84%E5%85%8D%E8%B4%B9dns%E8%A7%A3%E6%9E%90%E8%AE%B0%E5%BD%95%E7%BD%91%E7%AB%99%20http%3A%2F%2Fwww.dnslog.cn%20http%3A%2F%2Fadmin.dnslog.link,http%3A%2F%2Fceye.io%200x03%20DNSlog%E5%9B%9E%E6%98%BE%E6%B3%A8%E5%85%A5%E6%9D%A1%E4%BB%B6)
+
+  `http://admin.dnslog.link`
+
+  `http://ceye.io`
+
+  经尝试第三个可以登录
+
+  进行该网站使用方法的学习
+
+  - 参考资料
+    
+    [CEYEintroduce](http://ceye.io/introduce)
+
+    [DNSlog介绍](https://blog.csdn.net/qq_53577336/article/details/118615216#:~:text=%E6%8E%A8%E8%8D%90%E4%B8%89%E4%B8%AA%E5%A4%A7%E4%BC%97%E5%8C%96%E7%9A%84%E5%85%8D%E8%B4%B9dns%E8%A7%A3%E6%9E%90%E8%AE%B0%E5%BD%95%E7%BD%91%E7%AB%99%20http%3A%2F%2Fwww.dnslog.cn%20http%3A%2F%2Fadmin.dnslog.link,http%3A%2F%2Fceye.io%200x03%20DNSlog%E5%9B%9E%E6%98%BE%E6%B3%A8%E5%85%A5%E6%9D%A1%E4%BB%B6)
+
+    [CEYE平台的使用](https://dzxindex.github.io/2021/12/14/security-CEYE/#ceye-%E6%98%AF%E4%BB%80%E4%B9%88)
+
+    [CEYE平台的使用max](https://www.cnblogs.com/zhaijiahui/p/9160913.html)
 
 
-5. 漏洞利用监测
-6. 漏洞利用防御与加固
+
+  
+  
+
+
+
+1. 漏洞利用监测
+2. 漏洞利用防御与加固
