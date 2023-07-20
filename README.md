@@ -180,13 +180,21 @@ E0F
 
 验证端口是否一致
 
+`docker ps`
+
 ![端口验证](端口验证.png)
 
 启用tmux
 
+`tmux`
+
 ![tmux](tmux.png)
 
 输入相应容器名称进行监测
+
+`container_name="e48de56e4c7c"
+
+`docker run --rm --net=container:${container_name} -v ${PWD}/tcpdump/${container_name}:/tcpdump kaazing/tcpdump'
 
 ![监测](监测.png)
 
