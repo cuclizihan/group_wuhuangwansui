@@ -4,6 +4,8 @@
 
 由于已有可直接使用的kali虚拟机，故并未从0开始，只是在原有基础上添加了新的网卡，即host-only。
 
+![网卡](网卡.png)
+
 先检查网卡是否被启用
 
 `ip -a`
@@ -146,6 +148,8 @@ E0F
 
 `docker pull vulfocus/vulfocus:latest`
 
+![拉取](拉取.png)
+
 ## 快速上手 vulfocus
 
 进入vulfocus目录
@@ -156,4 +160,8 @@ E0F
 
 `bash start.sh`
 
+![bash](bash.png)
+
 选择自己的host-only网卡。之后就可以通过地址在宿主机上访问vulfocus
+
+![vulfocus](vulfocus.png)
