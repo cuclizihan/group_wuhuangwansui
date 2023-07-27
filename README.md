@@ -236,3 +236,7 @@ private void handlePost(BaseWSServlet var1, HttpServletRequest var2, HttpServlet
     }
 }
 ```
+
+SOAP是一种通信协议，用于应用程序之间的通信。它是一种轻量的、简单的、基于XML的协议，可以独立于平台和语言进行通信。SOAP定义了数据交互中如何传递消息的规则，比如在HTTP中规定了POST请求的传参方式，在数据类型不同的情况下可以使用不同的参数方式。
+
+在整个进程调用中，BaseWSServlet类实例化对象var1封装了基于HTTP协议的SOAP消息。其中WorkAreaServerHandler类中的handleRequest()方法用于处理访问请求，通过WlMessageContext对象var2获取传入的MessageContext，调用var2对象的getHeaders()方法获取传入SOAP消息的Header元素，并最终将该元素传递到WorkAreaHeader对象var4中。通过上述漏洞调用过程分析，要想有效修复漏洞，需要开发补丁,最直接的方法是在路径weblogic/wsee/workarea/WorkContextXmlInputAdapter.java中添加了validate方法，即在调用startElement方法解析XML的过程中，如果解析到Element字段值为Object就抛出异常
