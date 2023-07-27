@@ -217,3 +217,22 @@ E0F
 继续分析漏洞是如何发送http请求从而获得权限的，在ProcessBuilder类中打下断点。首先程序是继承自HttpServlet的BaseWSServlet类，其中的service方法主要用于处理HTTP请求及其响应，通过HTTP协议发送的请求包封装在HttpServletRequest类的实例化对象var1中，调用BaseWSServlet中定义的内部类AuthorizedInvoke的run()方法完成传入HTTP对象的权限验证过程。若校验成功，则进入到SoapProcessor类的process方法中，通过调用HttpServletRequest类实例化对象var1的getMethod()方法获取HTTP请求类型，若为POST方法，则继续处理请求
 
 HTTP请求发送至SoapProcessor类的handlePost方法：
+
+```
+private void handlePost(BaseWSServlet var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException {
+    assert var1.getPort() != null;
+
+    WsPort var4 = var1.getPort();
+    String var5 = var4.getWsdlPort().getBinding().getBindingType();
+    HttpServerTransport var6 = new HttpServerTransport(var2, var3);
+    WsSkel var7 = (WsSkel)var4.getEndpoint();
+    try {
+        Connection var8 = ConnectionFactory.instance().createServerConnection(var6, var5);
+        var7.invoke(var8, var4);
+    } catch (ConnectionException var9) {
+        this.sendError(var3, var9, "Failed to create connection");
+    } catch (Throwable var10) {
+        this.sendError(var3, var10, "Unknown error");
+    }
+}
+```
