@@ -214,6 +214,37 @@ E0F
 
 访问/_async/AsyncResponseService路径
 
+### 自动化漏洞验证
+
+检测函数checking(url)中，脚本会发送GET请求到目标URL的/_async/AsyncResponseService路径，并检查响应状态码。如果状态码为200，表示目标存在CVE-2019-2725漏洞；否则，表示目标不受该漏洞影响。
+
+```
+def checking(url):
+  try:
+    response = requests.get(url+filename)
+    if response.status_code == 200:
+      print('[+] {0} 存在CVE-2019-2725 Oracle weblogic 反序列化远程命令执行漏洞'.format(url))
+    else:
+      print('[-] {0} 不存在CVE-2019-2725 Oracle weblogic 反序列化远程命令执行漏洞'.format(url))
+  except Exception as e:
+    print("[-] {0} 连接失败".format(url))
+    exit()
+if options.FILE and os.path.exists(options.FILE):
+  with open(options.FILE) as f:
+    urls = f.readlines()
+    #print(urls)
+    for url in urls:
+      url = str(url).replace('\n','').replace('\r','').strip()
+      checking(url)
+elif options.FILE and not os.path.exists(options.FILE):
+  print('[-] {0} 文件不存在'.format(options.FILE))
+  exit()
+else:
+  #上传链接
+  url = options.URL+':'+options.PORT
+  checking(url)
+```
+
 ## 漏洞修复
 
 通过对资料的查阅以及咨询别组同学，Weblogic-cve-2019-2725的漏洞源于在反序列化处理输入信息的过程中存在缺陷，未经授权的攻击者可以发送精心构造的恶意 HTTP 请求，利用该漏洞获取服务器权限，实现远程代码执行。
