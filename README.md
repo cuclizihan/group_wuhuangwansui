@@ -343,3 +343,7 @@ public void startElement(String uri, String localName, String qName, Attributes 
 ### 及时打上官方CVE-2019-2725补丁包。
 
 官方已于4月26日公布紧急补丁包，下载地址：https://www.oracle.com/technetwork/security-advisory/alert-cve-2019-2725-5466295.html?from=timeline
+
+### 升级本地JDK版本
+
+因为Weblogic所采用的是其安装文件中默认1.6版本的JDK文件，属于存在反序列化漏洞的JDK版本，因此升级到JDK7u21以上版本可以避免由于Java原生类反序列化漏洞造成的远程代码执行。升级JAVA版本到JDK7u21以上版本可以避免由于Java原生类反序列化漏洞造成的远程代码执行。
