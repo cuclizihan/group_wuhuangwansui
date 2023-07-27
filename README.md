@@ -317,4 +317,26 @@ private void validate(InputStream is) {
 
 但是针对void和array这两个元素是有选择性的抛异常，其中当解析到void元素后，还会进一步解析该元素中的属性名，若没有匹配上index关键字才会抛出异常。而针对array元素而言，在解析到该元素属性名匹配class关键字的前提下，还会解析该属性值，若没有匹配上byte关键字，才会抛出运行时异常：
 
+```
+public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
+            if(qName.equalsIgnoreCase("object")) {
+               throw new IllegalStateException("Invalid element qName:object");
+            } else if(qName.equalsIgnoreCase("new")) {
+              throw new IllegalStateException("Invalid element qName:new");
+            } else if(qName.equalsIgnoreCase("method")) {
+               throw new IllegalStateException("Invalid element qName:method");
+            } else {
+               if(qName.equalsIgnoreCase("void")) {
+                  for(int attClass = 0; attClass < attributes.getLength(); ++attClass) {
+                     if(!"index".equalsIgnoreCase(attributes.getQName(attClass))) {
+                        throw new IllegalStateException("Invalid attribute for element void:" + attributes.getQName(attClass));
+                     }
+                  }
+               }
+               if(qName.equalsIgnoreCase("array")) {
+       String var9 = attributes.getValue("class");
+       if(var9 != null && !var9.equalsIgnoreCase("byte")) {
+      throw new IllegalStateException("The value of class attribute is not valid for array element.");
+     }
+```
 
