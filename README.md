@@ -352,3 +352,6 @@ public void startElement(String uri, String localName, String qName, Attributes 
 
 部署于公网的WebLogic服务器，可通过ACL禁止对/_async/及/wls-wsat/路径的访问。修改访问控制策略，限制对/_async/及/wls-wsat/路径的访问，这样就上传不了攻击木马了。
 
+### 删除不安全文件
+
+删除wls9_async_response.war与wls-wsat.war文件及相关数据,因为该漏洞由WAR包的缺陷引起，删除可以缓解，不过需要备份一下。删除wls9_async_response.war与wls-wsat.war文件及相关文件夹，并重启Weblogic服务。具体文件路径如下
