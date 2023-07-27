@@ -340,3 +340,6 @@ public void startElement(String uri, String localName, String qName, Attributes 
      }
 ```
 
+### 及时打上官方CVE-2019-2725补丁包。
+
+官方已于4月26日公布紧急补丁包，下载地址：https://www.oracle.com/technetwork/security-advisory/alert-cve-2019-2725-5466295.html?from=timeline
