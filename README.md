@@ -205,3 +205,15 @@ E0F
 至此，前期准备工作就绪
 
 ## 漏洞修复
+
+通过对资料的查阅以及咨询别组同学，Weblogic-cve-2019-2725的漏洞源于在反序列化处理输入信息的过程中存在缺陷，未经授权的攻击者可以发送精心构造的恶意 HTTP 请求，利用该漏洞获取服务器权限，实现远程代码执行。
+
+可以从Oracle官方漏洞复现源拿到漏洞镜像，根据Oracle的漏洞报告，此漏洞存在于异步通讯服务，通过访问路径
+
+`/_async/AsyncResponseService`
+
+判断不安全组件是否开启。wls9_async_response.war包中的类由于使用注解方法调用了Weblogic原生处理Web服务的类，因此会受该漏洞影响
+
+继续分析漏洞是如何发送http请求从而获得权限的，在ProcessBuilder类中打下断点。首先程序是继承自HttpServlet的BaseWSServlet类，其中的service方法主要用于处理HTTP请求及其响应，通过HTTP协议发送的请求包封装在HttpServletRequest类的实例化对象var1中，调用BaseWSServlet中定义的内部类AuthorizedInvoke的run()方法完成传入HTTP对象的权限验证过程。若校验成功，则进入到SoapProcessor类的process方法中，通过调用HttpServletRequest类实例化对象var1的getMethod()方法获取HTTP请求类型，若为POST方法，则继续处理请求
+
+HTTP请求发送至SoapProcessor类的handlePost方法：
