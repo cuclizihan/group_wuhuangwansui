@@ -347,3 +347,8 @@ public void startElement(String uri, String localName, String qName, Attributes 
 ### 升级本地JDK版本
 
 因为Weblogic所采用的是其安装文件中默认1.6版本的JDK文件，属于存在反序列化漏洞的JDK版本，因此升级到JDK7u21以上版本可以避免由于Java原生类反序列化漏洞造成的远程代码执行。升级JAVA版本到JDK7u21以上版本可以避免由于Java原生类反序列化漏洞造成的远程代码执行。
+
+### 配置URL访问控制策略
+
+部署于公网的WebLogic服务器，可通过ACL禁止对/_async/及/wls-wsat/路径的访问。修改访问控制策略，限制对/_async/及/wls-wsat/路径的访问，这样就上传不了攻击木马了。
+
