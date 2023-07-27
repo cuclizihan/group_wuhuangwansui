@@ -240,3 +240,81 @@ private void handlePost(BaseWSServlet var1, HttpServletRequest var2, HttpServlet
 SOAP是一种通信协议，用于应用程序之间的通信。它是一种轻量的、简单的、基于XML的协议，可以独立于平台和语言进行通信。SOAP定义了数据交互中如何传递消息的规则，比如在HTTP中规定了POST请求的传参方式，在数据类型不同的情况下可以使用不同的参数方式。
 
 在整个进程调用中，BaseWSServlet类实例化对象var1封装了基于HTTP协议的SOAP消息。其中WorkAreaServerHandler类中的handleRequest()方法用于处理访问请求，通过WlMessageContext对象var2获取传入的MessageContext，调用var2对象的getHeaders()方法获取传入SOAP消息的Header元素，并最终将该元素传递到WorkAreaHeader对象var4中。通过上述漏洞调用过程分析，要想有效修复漏洞，需要开发补丁,最直接的方法是在路径weblogic/wsee/workarea/WorkContextXmlInputAdapter.java中添加了validate方法，即在调用startElement方法解析XML的过程中，如果解析到Element字段值为Object就抛出异常
+
+龙某觱篥DYS:
+## 漏洞修复
+
+通过对资料的查阅以及咨询别组同学，Weblogic-cve-2019-2725的漏洞源于在反序列化处理输入信息的过程中存在缺陷，未经授权的攻击者可以发送精心构造的恶意 HTTP 请求，利用该漏洞获取服务器权限，实现远程代码执行。
+
+可以从Oracle官方漏洞复现源拿到漏洞镜像，根据Oracle的漏洞报告，此漏洞存在于异步通讯服务，通过访问路径
+
+`/_async/AsyncResponseService`
+
+判断不安全组件是否开启。wls9_async_response.war包中的类由于使用注解方法调用了Weblogic原生处理Web服务的类，因此会受该漏洞影响
+
+继续分析漏洞是如何发送http请求从而获得权限的，在ProcessBuilder类中打下断点。首先程序是继承自HttpServlet的BaseWSServlet类，其中的service方法主要用于处理HTTP请求及其响应，通过HTTP协议发送的请求包封装在HttpServletRequest类的实例化对象var1中，调用BaseWSServlet中定义的内部类AuthorizedInvoke的run()方法完成传入HTTP对象的权限验证过程。若校验成功，则进入到SoapProcessor类的process方法中，通过调用HttpServletRequest类实例化对象var1的getMethod()方法获取HTTP请求类型，若为POST方法，则继续处理请求
+
+HTTP请求发送至SoapProcessor类的handlePost方法：
+
+```
+private void handlePost(BaseWSServlet var1, HttpServletRequest var2, HttpServletResponse var3) throws IOException {
+    assert var1.getPort() != null;
+
+    WsPort var4 = var1.getPort();
+    String var5 = var4.getWsdlPort().getBinding().getBindingType();
+    HttpServerTransport var6 = new HttpServerTransport(var2, var3);
+    WsSkel var7 = (WsSkel)var4.getEndpoint();
+    try {
+        Connection var8 = ConnectionFactory.instance().createServerConnection(var6, var5);
+        var7.invoke(var8, var4);
+    } catch (ConnectionException var9) {
+        this.sendError(var3, var9, "Failed to create connection");
+    } catch (Throwable var10) {
+        this.sendError(var3, var10, "Unknown error");
+    }
+}
+```
+
+SOAP是一种通信协议，用于应用程序之间的通信。它是一种轻量的、简单的、基于XML的协议，可以独立于平台和语言进行通信。SOAP定义了数据交互中如何传递消息的规则，比如在HTTP中规定了POST请求的传参方式，在数据类型不同的情况下可以使用不同的参数方式。
+
+在整个进程调用中，BaseWSServlet类实例化对象var1封装了基于HTTP协议的SOAP消息。其中WorkAreaServerHandler类中的handleRequest()方法用于处理访问请求，通过WlMessageContext对象var2获取传入的MessageContext，调用var2对象的getHeaders()方法获取传入SOAP消息的Header元素，并最终将该元素传递到WorkAreaHeader对象var4中。通过上述漏洞调用过程分析，要想有效修复漏洞，需要开发补丁,最直接的方法是在路径weblogic/wsee/workarea/WorkContextXmlInputAdapter.java中添加了validate方法，即在调用startElement方法解析XML的过程中，如果解析到Element字段值为Object就抛出异常
+
+```
+private void validate(InputStream is) {
+     WebLogicSAXParserFactory factory = new WebLogicSAXParserFactory();
+      try {
+         SAXParser parser = factory.newSAXParser();
+         parser.parse(is, new DefaultHandler() {
+            public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
+               if(qName.equalsIgnoreCase("object")) {
+                  throw new IllegalStateException("Invalid context type: object");
+               }
+            }
+         });
+      } catch (ParserConfigurationException var5) {
+         throw new IllegalStateException("Parser Exception", var5);
+      } catch (SAXException var6) {
+         throw new IllegalStateException("Parser Exception", var6);
+      } catch (IOException var7) {
+         throw new IllegalStateException("Parser Exception", var7);
+      }
+   }
+```
+
+然而，采用黑名单的防护措施很快就被POC轻松绕过，因为其中不包含任何Object元素。尽管经过XMLDecoder解析后，这种方法仍然会导致远程代码执行，例如给出一段poc：
+
+```
+<java version="1.4.0" class="java.beans.XMLDecoder">
+    <new class="java.lang.ProcessBuilder">
+        <string>calc</string><method name="start" />
+    </new>
+</java>
+```
+
+因为其中不包含任何Object元素，但经XMLDecoder解析后依旧造成了远程代码执行
+
+因此，我们需要将更多的关键字漏洞加入到黑名单中，从而做到当程序解析到关键字属性的字样时，即设置为异常，object、new、method关键字继续加入到黑名单中，一旦解析XML元素过程中匹配到上述任意一个关键字就立即抛出运行时异常。
+
+但是针对void和array这两个元素是有选择性的抛异常，其中当解析到void元素后，还会进一步解析该元素中的属性名，若没有匹配上index关键字才会抛出异常。而针对array元素而言，在解析到该元素属性名匹配class关键字的前提下，还会解析该属性值，若没有匹配上byte关键字，才会抛出运行时异常：
+
+
