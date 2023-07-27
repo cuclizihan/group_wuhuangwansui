@@ -362,3 +362,4 @@ public void startElement(String uri, String localName, String qName, Attributes 
 \Middleware\wlserver_10.3\server\lib\%DOMAIN_HOME%\servers\AdminServer\tmp\_WL_internal\%DOMAIN_HOME%\servers\AdminServer\tmp\.internal\
 ```
 
+### 注：wls9_async_response.war及wls-wsat.war属于一级应用包，对其进行移除或更名操作可能造成未知的后果，Oracle官方不建议对其进行此类操作。若在直接删除此包的情况下应用出现问题，将无法得到Oracle产品部门的技术支持。请用户自行进行影响评估，并对此文件进行备份后，再执行此操作
